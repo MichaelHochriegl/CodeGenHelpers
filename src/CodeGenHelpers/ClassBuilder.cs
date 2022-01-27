@@ -16,6 +16,7 @@ namespace CodeGenHelpers
         private readonly List<EventBuilder> _events = new List<EventBuilder>();
         private readonly List<PropertyBuilder> _properties = new List<PropertyBuilder>();
         private readonly List<MethodBuilder> _methods = new List<MethodBuilder>();
+        private readonly List<GenericBuilder<ClassBuilder>> _generics = new List<GenericBuilder<ClassBuilder>>();
         private readonly Queue<ClassBuilder> _nestedClass = new Queue<ClassBuilder>();
         private readonly List<string> _constraints = new List<string>();
         private readonly bool _isPartial;
@@ -37,6 +38,7 @@ namespace CodeGenHelpers
         public IReadOnlyList<PropertyBuilder> Properties => _properties;
 
         public IReadOnlyList<MethodBuilder> Methods => _methods;
+        public IReadOnlyList<GenericBuilder<ClassBuilder>> Generics => _generics;
 
         public IReadOnlyList<ClassBuilder> NestedClasses => _nestedClass.ToList();
 
@@ -196,6 +198,13 @@ namespace CodeGenHelpers
             return this;
         }
 
+        public GenericBuilder<ClassBuilder> AddGeneric(string name)
+        {
+            var builder = new GenericBuilder<ClassBuilder>(name,this);
+            _generics.Add(builder);
+            return builder;
+        }
+
         public ConstructorBuilder AddConstructor(Accessibility? accessModifier = null)
         {
             var builder = new ConstructorBuilder(accessModifier, this);
@@ -270,7 +279,15 @@ namespace CodeGenHelpers
 
             var staticDeclaration = IsStatic ? "static " : string.Empty;
 
+            var genericsQueue = new Queue<string>();
+            var genericsConstraintQueue = new Queue<string>();
             var queue = new Queue<string>();
+            foreach (var generic in _generics)
+            {
+                genericsQueue.Enqueue(generic.Name);
+                genericsConstraintQueue.Enqueue(generic.ToGenericConstraintString());
+            }
+
             if (!string.IsNullOrEmpty(BaseClass))
             {
                 queue.Enqueue(BaseClass);
@@ -281,7 +298,10 @@ namespace CodeGenHelpers
                 queue.Enqueue(inter);
             }
 
-            var extra = queue.Any() ? $": {string.Join(", ", queue)}" : string.Empty;
+            var generics = genericsQueue.Any() ? $"<{string.Join(", ", genericsQueue)}>" : string.Empty;
+            var genericsConstraints = genericsQueue.Any() ? $"{string.Join(" ", genericsConstraintQueue)}" : string.Empty;
+            var extra = queue.Any() ? $"{string.Join(", ", queue)}" : string.Empty;
+            var extraColon = genericsConstraints.Any() || queue.Any() ? ":" : string.Empty;
 
             foreach (var attr in _attributes)
             {
@@ -295,7 +315,10 @@ namespace CodeGenHelpers
                 _isPartial ? "partial" : null,
                 Kind.ToString().ToLower(),
                 Name,
-                extra
+                generics,
+                extraColon,
+                extra,
+                genericsConstraints
             };
 
             using (writer.Block(string.Join(" ", classDeclaration.Where(x => !string.IsNullOrEmpty(x))), _constraints.ToArray()))
