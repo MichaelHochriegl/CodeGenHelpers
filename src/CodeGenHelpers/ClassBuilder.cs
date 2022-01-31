@@ -285,7 +285,8 @@ namespace CodeGenHelpers
             foreach (var generic in _generics)
             {
                 genericsQueue.Enqueue(generic.Name);
-                genericsConstraintQueue.Enqueue(generic.ToGenericConstraintString());
+                if (generic.HasConstraint)
+                    genericsConstraintQueue.Enqueue(generic.ToGenericConstraintString());
             }
 
             if (!string.IsNullOrEmpty(BaseClass))

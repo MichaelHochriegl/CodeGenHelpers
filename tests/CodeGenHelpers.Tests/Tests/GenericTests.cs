@@ -45,11 +45,13 @@ namespace CodeGenHelpers.Tests
                 .Parent
                 .AddGeneric("U")
                 .WithConstraint("class")
+                .Parent
+                .AddGeneric("K")
                 .Parent;
 
             var expected = @"namespace AwesomeApp
 {
-    partial class SampleGenericClass <T, U> : where T : class where U : class
+    partial class SampleGenericClass <T, U, K> : where T : class where U : class
     {
     }
 }
