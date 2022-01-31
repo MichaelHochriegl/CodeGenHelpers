@@ -12,6 +12,7 @@ namespace CodeGenHelpers
         private readonly List<string> _constraints = new List<string>();
         private readonly DocumentationComment _xmlDoc = new DocumentationComment(true);
         private readonly List<ParameterBuilder<MethodBuilder>> _parameters = new List<ParameterBuilder<MethodBuilder>>();
+        private readonly List<GenericBuilder<MethodBuilder>> _generics = new List<GenericBuilder<MethodBuilder>>();
         private bool _override;
         private bool _virtual;
 
@@ -28,6 +29,8 @@ namespace CodeGenHelpers
         MethodBuilder IParameterized<MethodBuilder>.Parent => this;
 
         public IReadOnlyCollection<ParameterBuilder<MethodBuilder>> Parameters => _parameters;
+
+        public IReadOnlyList<GenericBuilder<MethodBuilder>> Generics => _generics;
 
         public string Name { get; }
 
@@ -79,6 +82,13 @@ namespace CodeGenHelpers
         {
             _xmlDoc.ParameterDoc[paramName] = documentation;
             return this;
+        }
+
+        public GenericBuilder<MethodBuilder> AddGeneric(string name)
+        {
+            var builder = new GenericBuilder<MethodBuilder>(name,this);
+            _generics.Add(builder);
+            return builder;
         }
 
         public MethodBuilder AddConstraint(string constraint)
@@ -175,6 +185,20 @@ namespace CodeGenHelpers
 
         internal override void Write(in CodeWriter writer)
         {
+            var genericsQueue = new Queue<string>();
+            var genericsConstraintQueue = new Queue<string>();
+            foreach (var generic in _generics)
+            {
+                genericsQueue.Enqueue(generic.Name);
+                if (generic.HasConstraint)
+                    genericsConstraintQueue.Enqueue(generic.ToGenericConstraintString());
+            }
+
+            var generics = genericsQueue.Any() ? $"<{string.Join(", ", genericsQueue)}>" : string.Empty;
+            var genericsConstraints = genericsQueue.Any()
+                ? $"{string.Join(" ", genericsConstraintQueue)}"
+                : string.Empty;
+
             var output = string.IsNullOrEmpty(ReturnType) ? "void" : ReturnType.Trim();
             if (IsAsync)
                 output = $"async {output}";
@@ -187,7 +211,7 @@ namespace CodeGenHelpers
                 output = $"static {output}";
 
             var parameters = string.Join(", ", _parameters.Select(x => x.ToString()));
-            output = $"{AccessModifier.Code()} {output} {Name}({parameters})";
+            output = $"{AccessModifier.Code()} {output} {Name}{generics}({parameters}) {genericsConstraints}";
 
             _xmlDoc.RemoveUnusedParameters(_parameters);
             _xmlDoc.Write(writer);

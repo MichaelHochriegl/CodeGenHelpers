@@ -63,6 +63,79 @@ namespace CodeGenHelpers.Tests
             AreEqual(expected, builder);
         }
 
+        [Fact]
+        public void WithGenericMethod()
+        {
+            var builder = CodeBuilder.Create("AwesomeApp")
+                .AddClass("SampleGenericClass")
+                .AddMethod("MyGenericMethod")
+                    .AddGeneric("T")
+                    .WithConstraint("class")
+                    .Parent
+                .Class;
+
+            var expected = @"namespace AwesomeApp
+{
+    partial class SampleGenericClass
+    {
+        void MyGenericMethod<T>() where T : class
+        {
+        }
+    }
+}
+";
+            _testOutputHelper.WriteLine(expected);
+            _testOutputHelper.WriteLine("____________________");
+            _testOutputHelper.WriteLine(builder.Build());
+
+            AreEqual(expected, builder);
+        }
+
+        [Fact]
+        public void WithMultipleGenericMethod()
+        {
+            var builder = CodeBuilder.Create("AwesomeApp")
+                .AddClass("SampleClass")
+                .AddNamespaceImport("System.Collections.Generic")
+                .AddMethod("MySampleMethod")
+                .AddParameter("T", "item")
+                .AddGeneric("T")
+                .WithConstraint("class")
+                .Parent
+                .AddGeneric("U")
+                .WithConstraint("class")
+                .Parent
+                .WithReturnType("bool")
+                .WithBody(w =>
+                {
+                    w.AppendLine("var list = new List<T>();");
+                    w.AppendLine("list.Add(item);");
+                    w.AppendLine("return list.Count > 0;");
+                })
+                .Class;
+
+            var expected = @"using System.Collections.Generic;
+
+namespace AwesomeApp
+{
+    partial class SampleClass
+    {
+        bool MySampleMethod<T, U>(T item) where T : class where U : class
+        {
+            var list = new List<T>();
+            list.Add(item);
+            return list.Count > 0;
+        }
+    }
+}
+";
+            _testOutputHelper.WriteLine(expected);
+            _testOutputHelper.WriteLine("____________________");
+            _testOutputHelper.WriteLine(builder.Build());
+
+            AreEqual(expected, builder);
+        }
+
         private void AreEqual(string expected, ClassBuilder builder)
         {
             var expectedOutput = $@"//------------------------------------------------------------------------------
