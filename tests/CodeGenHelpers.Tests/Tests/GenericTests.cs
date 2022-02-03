@@ -23,7 +23,7 @@ namespace CodeGenHelpers.Tests
 
             var expected = @"namespace AwesomeApp
 {
-    partial class SampleGenericClass <T> : where T : class
+    partial class SampleGenericClass <T> where T : class
     {
     }
 }
@@ -51,7 +51,7 @@ namespace CodeGenHelpers.Tests
 
             var expected = @"namespace AwesomeApp
 {
-    partial class SampleGenericClass <T, U, K> : where T : class where U : class
+    partial class SampleGenericClass <T, U, K> where T : class where U : class
     {
     }
 }

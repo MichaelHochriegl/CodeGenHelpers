@@ -302,7 +302,7 @@ namespace CodeGenHelpers
             var generics = genericsQueue.Any() ? $"<{string.Join(", ", genericsQueue)}>" : string.Empty;
             var genericsConstraints = genericsQueue.Any() ? $"{string.Join(" ", genericsConstraintQueue)}" : string.Empty;
             var extra = queue.Any() ? $"{string.Join(", ", queue)}" : string.Empty;
-            var extraColon = genericsConstraints.Any() || queue.Any() ? ":" : string.Empty;
+            var extraColon = queue.Any() ? ":" : string.Empty;
 
             foreach (var attr in _attributes)
             {
